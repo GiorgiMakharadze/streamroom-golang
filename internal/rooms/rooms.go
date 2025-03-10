@@ -17,12 +17,12 @@ import (
 type Room struct {
 	ID          string
 	CreatedAt   time.Time
-	DataChan    chan []byte     `json:"-"`
-	Publisher   *websocket.Conn `json:"-"`
-	CloseChan   chan struct{}   `json:"-"`
-	ErrorChan   chan error      `json:"-"`
-	StoppedChan chan struct{}   `json:"-"`
-	Cmd         *exec.Cmd       `json:"-"`
+	DataChan    chan []byte
+	Publisher   *websocket.Conn
+	CloseChan   chan struct{}
+	ErrorChan   chan error
+	StoppedChan chan struct{}
+	Cmd         *exec.Cmd
 }
 
 type RoomManager struct {
