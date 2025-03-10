@@ -16,9 +16,7 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})
-
 	http.HandleFunc("/streams", middleware.WithCORS(websocket.HandleStreamsList))
-
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		websocket.WsHandler(w, r, cfg)
 	})

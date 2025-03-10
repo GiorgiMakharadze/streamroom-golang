@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,30 +17,36 @@ import (
 type Room struct {
 	ID          string
 	CreatedAt   time.Time
-	DataChan    chan []byte
-	Publisher   *websocket.Conn
-	CloseChan   chan struct{}
-	ErrorChan   chan error
-	StoppedChan chan struct{}
-	Cmd         *exec.Cmd
+	DataChan    chan []byte     `json:"-"`
+	Publisher   *websocket.Conn `json:"-"`
+	CloseChan   chan struct{}   `json:"-"`
+	ErrorChan   chan error      `json:"-"`
+	StoppedChan chan struct{}   `json:"-"`
+	Cmd         *exec.Cmd       `json:"-"`
 }
 
 type RoomManager struct {
-	rooms map[string]*Room
-	mutex sync.RWMutex
+	rooms         map[string]*Room
+	mutex         sync.RWMutex
+	activeStreams map[string]bool
 }
 
 var Manager = &RoomManager{
-	rooms: make(map[string]*Room),
+	rooms:         make(map[string]*Room),
+	activeStreams: make(map[string]bool),
 }
 
-func (rm *RoomManager) CreateRoomWithKey(streamKey string, publisher *websocket.Conn) (*Room, error) {
+func (rm *RoomManager) CreateRoomWithKey(rawStreamKey string, publisher *websocket.Conn) (*Room, error) {
+	streamKey := strings.TrimSpace(rawStreamKey)
+
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
 
-	if _, exists := rm.rooms[streamKey]; exists {
-		return nil, fmt.Errorf("stream with key '%s' already exists", streamKey)
+	if rm.activeStreams[streamKey] {
+		return nil, fmt.Errorf("stream key '%s' is already in use", streamKey)
 	}
+
+	rm.activeStreams[streamKey] = true
 
 	room := &Room{
 		ID:          streamKey,
@@ -146,15 +153,24 @@ func (rm *RoomManager) GetRoom(id string) (*Room, bool) {
 
 func (rm *RoomManager) DeleteRoom(id string) {
 	rm.mutex.Lock()
-	defer rm.mutex.Unlock()
 
 	room, exists := rm.rooms[id]
-	if exists {
-		close(room.CloseChan)
-		<-room.StoppedChan
-		delete(rm.rooms, id)
-		cleanupHLSFiles(id)
+	if !exists {
+		rm.mutex.Unlock()
+		log.Printf("Tried to delete non-existing stream: %s", id)
+		return
 	}
+
+	delete(rm.activeStreams, id)
+	delete(rm.rooms, id)
+	rm.mutex.Unlock()
+
+	log.Printf("Stream %s stopped and removed", id)
+
+	close(room.CloseChan)
+	<-room.StoppedChan
+
+	cleanupHLSFiles(id)
 }
 
 func cleanupHLSFiles(streamKey string) {

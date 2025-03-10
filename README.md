@@ -69,13 +69,13 @@ http://localhost:8080/hls/live/<streamKey>.m3u8
 
 ## ⚡ Features
 
-✅ **WebSocket support** for real-time video ingest (publishers).  
-✅ **Live stream management** using **Goroutines and Channels**.  
-✅ **FFmpeg integration** for real-time transcoding (WebM to FLV).  
-✅ **RTMP streaming support** for live broadcasting.  
-✅ **HLS playback** via Nginx-RTMP.  
-✅ **Graceful cleanup** — when a stream ends, FFmpeg is stopped and HLS files are removed.  
-✅ **Health monitoring** of the FFmpeg process (detect crashes and recover).
+**WebSocket support** for real-time video ingest (publishers).  
+**Live stream management** using **Goroutines and Channels**.  
+**FFmpeg integration** for real-time transcoding (WebM to FLV).  
+**RTMP streaming support** for live broadcasting.  
+**HLS playback** via Nginx-RTMP.  
+**Graceful cleanup** — when a stream ends, FFmpeg is stopped and HLS files are removed.  
+**Health monitoring** of the FFmpeg process (detect crashes and recover).
 
 ---
 
@@ -139,16 +139,16 @@ http://localhost:8080/hls/live/myAwesomeStream.m3u8
 
 ---
 
-## ✅ Advantages After Refactor
+## Advantages After Refactor
 
-✅ No more blocking — every stream runs in its own goroutine.  
-✅ Efficient `Room` lifecycle — clean start, monitoring, and cleanup.  
-✅ Live logs from FFmpeg directly into the server logs for easy debugging.  
-✅ No need to buffer full files — direct piping from WebSocket to FFmpeg.
+No more blocking — every stream runs in its own goroutine.  
+Efficient `Room` lifecycle — clean start, monitoring, and cleanup.  
+Live logs from FFmpeg directly into the server logs for easy debugging.  
+No need to buffer full files — direct piping from WebSocket to FFmpeg.
 
 ---
 
-## ⚠️ Important Note
+## Important Note
 
 - To reduce stream startup time, you can tune:
 ```nginx
