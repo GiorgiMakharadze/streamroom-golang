@@ -12,6 +12,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type AuthResponse struct {
+	Authenticated bool `json:"authenticated"`
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  65536,
 	WriteBufferSize: 65536,
@@ -73,6 +77,18 @@ func handlePublisher(w http.ResponseWriter, r *http.Request, cfg *pkg.Config) {
 	streamKey := r.URL.Query().Get("streamKey")
 	if streamKey == "" {
 		http.Error(w, "streamKey query parameter required", http.StatusBadRequest)
+		return
+	}
+
+	cookie := r.Header.Get("Cookie")
+	if cookie == "" {
+		http.Error(w, "Unauthorized: Missing session cookie", http.StatusUnauthorized)
+		return
+	}
+
+	authenticated, err := validateUserSession(cookie, cfg)
+	if err != nil || !authenticated {
+		http.Error(w, "Unauthorized: Invalid session", http.StatusUnauthorized)
 		return
 	}
 
@@ -157,4 +173,31 @@ func handleViewer(w http.ResponseWriter, r *http.Request, cfg *pkg.Config) {
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		log.Printf("Error responding to viewer request (streamKey: %s): %v", streamKey, err)
 	}
+}
+
+func validateUserSession(cookie string, cfg *pkg.Config) (bool, error) {
+	req, err := http.NewRequest("GET", cfg.AuthCheckURL, nil)
+	if err != nil {
+		return false, err
+	}
+
+	req.Header.Set("Cookie", cookie)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("non-200 response: %d", resp.StatusCode)
+	}
+
+	var authResp AuthResponse
+	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
+		return false, err
+	}
+
+	return authResp.Authenticated, nil
 }

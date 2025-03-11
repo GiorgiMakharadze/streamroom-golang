@@ -6,6 +6,7 @@ type Config struct {
 	WebSocketPort string
 	RTMPBaseURL   string
 	HLSBaseURL    string
+	AuthCheckURL  string
 }
 
 func LoadConfig() *Config {
@@ -24,9 +25,15 @@ func LoadConfig() *Config {
 		hlsBaseURL = "http://localhost:8080/hls/live"
 	}
 
+	authCheckURL := os.Getenv("AUTH_CHECK_URL")
+	if hlsBaseURL == "" {
+		hlsBaseURL = "http://localhost:8080/api/v1/check-auth"
+	}
+
 	return &Config{
 		WebSocketPort: wsPort,
 		RTMPBaseURL:   rtmpBaseURL,
 		HLSBaseURL:    hlsBaseURL,
+		AuthCheckURL:  authCheckURL,
 	}
 }
